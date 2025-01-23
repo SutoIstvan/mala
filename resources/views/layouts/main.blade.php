@@ -7,7 +7,6 @@
     <meta name="author" content="">
     <title>@yield('title', 'Mala.hu')</title>
 
-    <link rel="shortcut icon" href="./assets/img/favicon.png">
     <link rel="stylesheet" href="./assets/css/plugins.css">
     <link rel="stylesheet" href="./assets/css/style.css">
     <link rel="stylesheet" href="./assets/css/colors/grape.css">
