@@ -1,6 +1,6 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="public/assets/img/logo.png" width="200" alt="Laravel Logo"></a></p>
 
-## Paks informatikai BT - Docker
+## Mala.hu
 - Laravel v11
 - Bootstrap 5.3
 - PHP v8.3
