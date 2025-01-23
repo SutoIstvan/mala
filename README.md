@@ -8,8 +8,9 @@
 ##  How To Deploy
 
 - `git clone https://github.com/SutoIstvan/mala.git`
-- `rename .env.example to .env`
+- `rename .env.example to .env and setup`
 - `chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache`
 - `chmod -R 775 /var/www/storage /var/www/bootstrap/cache`
 - `composer install`
 - `php artisan key:generate`
+- `php artisan migrate`
