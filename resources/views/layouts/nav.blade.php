@@ -4,7 +4,7 @@
     <nav class="navbar navbar-expand-lg center-nav transparent navbar-light">
         <div class="container flex-lg-row flex-nowrap align-items-center">
             <div class="navbar-brand w-100">
-                <a href="./index.html" class="nav-link" style="    color: #343f52;">
+                <a href="{{ route('home') }}" class="nav-link" style="    color: #343f52;">
                     <svg width="80" height="20" viewBox="0 0 402 97" fill="none"
                         xmlns="http://www.w3.org/2000/svg">
                         <path
