@@ -14,6 +14,7 @@ class Sync extends Command
 
     public function handle(UnasApiService $unasService, ShopifyApiService $shopifyService)
     {
+       
         // Получаем список товаров из Unas
         $unasProducts = $unasService->getAllProducts();
 
@@ -21,7 +22,8 @@ class Sync extends Command
 
 
         foreach ($unasProducts as $unasProduct) {
-            $existingProduct = Product::where('unas_sku', $unasProduct['sku'])->first();
+
+            $existingProduct = Product::where('unas_id', $unasProduct['unas_id'])->first();
 
             if (!$existingProduct) {
                 // Создаем новый товар, если его нет в базе
@@ -42,9 +44,25 @@ class Sync extends Command
     {
         // Логика создания нового товара в базе Laravel
         $product = Product::create([
-            'unas_sku' => $unasProduct['sku'],
+            'sku' => $unasProduct['sku'],
+            'unas_id' => $unasProduct['unas_id'],
+            'state' => $unasProduct['state'],
             'name' => $unasProduct['name'],
-            // другие поля
+            'price' => $unasProduct['price'],
+            'unit' => $unasProduct['unit'],
+            'url' => $unasProduct['url'],
+            'qty' => $unasProduct['qty'],
+            'category' => $unasProduct['name'],
+            'description' => $unasProduct['name'],
+            'images' => $unasProduct['name'],
+            'params' => $unasProduct['name'],
+            'variants' => $unasProduct['name'],
+            'statuses' => $unasProduct['name'],
+            'history' => $unasProduct['name'],
+            'datas' => $unasProduct['name'],
+            'create_time' => $unasProduct['name'],
+            'last_mod_time' => $unasProduct['name'],
+
         ]);
 
         // Создание товара в Shopify

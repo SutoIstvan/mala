@@ -29,8 +29,10 @@
                                 kialakítása.,Szoftverfejlesztés.,Webshop Audit.</span>
                         </h1>
                         <p class="lead fs-24 mb-8">
-                            <img src="https://unas.hu/!common_design/own/image/page/arculati-kezikonyv/unas-logo-gray.png?version=1323"
-                                height="28px" alt="">
+                            <a href="https://unas.hu/">
+                                <img src="https://unas.hu/!common_design/own/image/page/arculati-kezikonyv/unas-logo-gray.png?version=1323"
+                                height="28px" alt="unas.hu">
+                            </a>
 
                             <br>
 

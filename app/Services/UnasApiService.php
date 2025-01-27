@@ -47,7 +47,7 @@ class UnasApiService
         return $this->token;
     }
 
-    public function getAllProducts($categoryId = '901601', $limit = 1000)
+    public function getAllProducts($categoryId = '901601', $limit = 3)
     {
         if (!$this->token) {
             $this->login();
@@ -72,6 +72,10 @@ class UnasApiService
         curl_setopt($this->curl, CURLOPT_URL, "https://api.unas.eu/shop/getProduct");
         curl_setopt($this->curl, CURLOPT_POSTFIELDS, $productRequest);
 
+
+
+        curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
+
         $response = curl_exec($this->curl);
         if ($response === false) {
             throw new \Exception('Curl error: ' . curl_error($this->curl));
@@ -82,7 +86,155 @@ class UnasApiService
             throw new \Exception('XML parsing error: ' . $response);
         }
 
-        return $productsXml->Product;
+        // XML convert
+        $products = [];
+        foreach ($productsXml->Product as $product) {
+            $productData = [
+                'sku' => (string)$product->Sku,
+                'unas_id' => (string)$product->Id,
+                'state' => (string)$product->State,
+                'name' => (string)$product->Name,
+                'price' => (string)$product->Prices->Price->Gross,
+                'unit' => (string)$product->Unit,
+                'create_time' => (string)$product->CreateTime,
+                'last_mod_time' => (string)$product->LastModTime,
+                'category' => (string)$product->Categories->Category->Name,
+                'description' => (string)$product->Description->Long,
+                'url' => (string)$product->Url,
+                'qty' => (string)$product->Stocks->Stock->Qty,
+            ];
+
+            if (isset($product->Images->Image)) {
+                $images = [];
+                foreach ($product->Images->Image as $image) {
+                    $images[] = [
+                        'url' => (string)$image->Url->Medium,
+                        'alt' => (string)$image->Alt,
+                    ];
+                }
+                $productData['images'] = $images;
+            }
+
+            if (isset($product->Params->Param)) {
+                $params = [];
+                foreach ($product->Params->Param as $category) {
+                    $params[] = [
+                        'type' => (string)$category->Type,
+                        'id' => (string)$category->Id,
+                        'name' => (string)$category->Name,
+                        'value' => (string)$category->Value
+                    ];
+                }
+                $productData['params'] = $params;
+            }
+
+            if (isset($product->Variants->Variant)) {
+                $variants = [];
+                foreach ($product->Variants->Variant as $variant) {
+                    $variantData = [
+                        'name' => (string)$variant->Name,
+                        'values' => [],
+                    ];
+
+                    if (isset($variant->Values->Value)) {
+                        foreach ($variant->Values->Value as $value) {
+                            $valueData = [
+                                'name' => (string)$value->Name,
+                            ];
+
+                            if (isset($value->ExtraPrice)) {
+                                $valueData['extra_price'] = (string)$value->ExtraPrice;
+                            }
+
+                            $variantData['values'][] = $valueData;
+                        }
+                    }
+
+                    $variants[] = $variantData;
+                }
+
+                $productData['variants'] = $variants;
+            }
+
+            if (isset($product->Statuses->Status)) {
+                $statuses = [];
+                foreach ($product->Statuses->Status as $status) {
+                    $statusData = [
+                        'type' => (string)$status->Type,
+                        'value' => (string)$status->Value,
+                    ];
+
+                    if (isset($status->Id)) {
+                        $statusData['id'] = (string)$status->Id;
+                    }
+                    if (isset($status->Name)) {
+                        $statusData['name'] = (string)$status->Name;
+                    }
+
+                    $statuses[] = $statusData;
+                }
+
+                $productData['statuses'] = $statuses;
+            }
+
+            if (isset($product->History->Event)) {
+                $history = [];
+                foreach ($product->History->Event as $event) {
+                    $eventData = [
+                        'action' => (string)$event->Action, // Действие (например, "add" или "modify")
+                        'time' => (string)$event->Time, // Время события
+                        'sku' => (string)$event->Sku, // Текущий SKU
+                    ];
+
+                    // Если есть старый SKU, добавляем его
+                    if (isset($event->SkuOld)) {
+                        $eventData['sku_old'] = (string)$event->SkuOld;
+                    }
+
+                    $history[] = $eventData;
+                }
+
+                $productData['history'] = $history;
+            }
+
+            if (isset($product->Datas->Data)) {
+                $datas = [];
+                foreach ($product->Datas->Data as $data) {
+                    $dataItem = [
+                        'id' => (string)$data->Id, // ID данных
+                        'name' => (string)$data->Name, // Название данных
+                        'value' => (string)$data->Value, // Значение данных
+                    ];
+            
+                    $datas[] = $dataItem;
+                }
+            
+                $productData['datas'] = $datas;
+            }
+
+
+            $products[] = $productData;
+        }
+
+        return $products;
+
+        // curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
+
+        // $response = curl_exec($this->curl);
+
+        // return $products; // Возвращаем сырой ответ
+
+        // $response = curl_exec($this->curl);
+        // if ($response === false) {
+        //     throw new \Exception('Curl error: ' . curl_error($this->curl));
+        // }
+
+        // $productsXml = simplexml_load_string($response);
+        // if (!$productsXml) {
+        //     throw new \Exception('XML parsing error: ' . $response);
+        // }
+
+        // return $productsXml->Product;
     }
 
     public function __destruct()
