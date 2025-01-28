@@ -81,11 +81,14 @@
             <div class="navbar-other w-100 d-flex ms-auto">
                 <ul class="navbar-nav flex-row align-items-center ms-auto">
                     <li class="nav-item">
-                        <nav class="nav social social-muted justify-content-end text-end">
+                        <nav class="nav social social-muted justify-content-end text-start">
                             <li class="nav-item">
 
-                            <a class="nav-link fs-16" href="https://vallalkozzdigitalisan.mkik.hu/">Modern Vállalkozások Programja - Vállalkozz digitálisan!
-                            </a>
+                                <a class="nav-link fs-15 d-flex align-items-center ms-8" href="https://vallalkozzdigitalisan.mkik.hu/">
+                                    <img src="{{ asset('assets/img/mvp.png') }}" height="37" alt="mvp" class="me-2">
+                                    <span style="line-height: 20px">Modern Vállalkozások Programja - Vállalkozz digitálisan!</span>
+                                </a>
+                                
                             </li>
                             {{-- <a href="#"><i class="uil uil-twitter"></i></a>
                             <a href="#"><i class="uil uil-facebook-f"></i></a>
