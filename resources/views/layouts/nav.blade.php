@@ -60,7 +60,7 @@
                             <a href="mailto:first.last@email.com" class="link-inverse">info@mala.hu</a>
                             <br /> +36 70 7021 252 <br />
                             <nav class="nav social social-white mt-4">
-                                <a href="#">
+                                <a href="https://vallalkozzdigitalisan.mkik.hu/">
                                     <img src="{{ asset('assets/img/logo-mvp.png') }}" alt="mvp">
                                 </a>
 
@@ -85,7 +85,6 @@
                             <li class="nav-item">
 
                             <a class="nav-link fs-16" href="https://vallalkozzdigitalisan.mkik.hu/">Modern Vállalkozások Programja - Vállalkozz digitálisan!
-                                {{-- <img src="{{ asset('assets/img/logo-mvp.png') }}" height="38" alt="Modern Vállalkozások Programja"> --}}
                             </a>
                             </li>
                             {{-- <a href="#"><i class="uil uil-twitter"></i></a>
