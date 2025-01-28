@@ -60,11 +60,15 @@
                             <a href="mailto:first.last@email.com" class="link-inverse">info@mala.hu</a>
                             <br /> +36 70 7021 252 <br />
                             <nav class="nav social social-white mt-4">
-                                <a href="#"><i class="uil uil-twitter"></i></a>
+                                <a href="#">
+                                    <img src="{{ asset('assets/img/logo-mvp.png') }}" alt="mvp">
+                                </a>
+
+                                {{-- <a href="#"><i class="uil uil-twitter"></i></a>
                                 <a href="#"><i class="uil uil-facebook-f"></i></a>
                                 <a href="#"><i class="uil uil-dribbble"></i></a>
                                 <a href="#"><i class="uil uil-instagram"></i></a>
-                                <a href="#"><i class="uil uil-youtube"></i></a>
+                                <a href="#"><i class="uil uil-youtube"></i></a> --}}
                             </nav>
                             <!-- /.social -->
                         </div>
@@ -78,10 +82,16 @@
                 <ul class="navbar-nav flex-row align-items-center ms-auto">
                     <li class="nav-item">
                         <nav class="nav social social-muted justify-content-end text-end">
-                            <a href="#"><i class="uil uil-twitter"></i></a>
+                            <li class="nav-item">
+
+                            <a class="nav-link fs-16" href="https://vallalkozzdigitalisan.mkik.hu/">Modern Vállalkozások Programja - Vállalkozz digitálisan!
+                                {{-- <img src="{{ asset('assets/img/logo-mvp.png') }}" height="38" alt="Modern Vállalkozások Programja"> --}}
+                            </a>
+                            </li>
+                            {{-- <a href="#"><i class="uil uil-twitter"></i></a>
                             <a href="#"><i class="uil uil-facebook-f"></i></a>
                             <a href="#"><i class="uil uil-dribbble"></i></a>
-                            <a href="#"><i class="uil uil-instagram"></i></a>
+                            <a href="#"><i class="uil uil-instagram"></i></a> --}}
                         </nav>
                         <!-- /.social -->
                     </li>
