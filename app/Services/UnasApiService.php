@@ -10,7 +10,7 @@ class UnasApiService
 
     public function __construct()
     {
-        $this->apiKey = config('unas.api_key', 'c9fee685261d00f137f44f4d203ed5ed67fca717');
+        $this->apiKey = env('UNAS_API_KEY');
         $this->initCurl();
     }
 
@@ -47,7 +47,7 @@ class UnasApiService
         return $this->token;
     }
 
-    public function getAllProducts($categoryId = '901601', $limit = 3)
+    public function getAllProducts($categoryId = '901601', $limit = 7)
     {
         if (!$this->token) {
             $this->login();
@@ -217,24 +217,6 @@ class UnasApiService
         }
 
         return $products;
-
-        // curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
-
-        // $response = curl_exec($this->curl);
-
-        // return $products; // Возвращаем сырой ответ
-
-        // $response = curl_exec($this->curl);
-        // if ($response === false) {
-        //     throw new \Exception('Curl error: ' . curl_error($this->curl));
-        // }
-
-        // $productsXml = simplexml_load_string($response);
-        // if (!$productsXml) {
-        //     throw new \Exception('XML parsing error: ' . $response);
-        // }
-
-        // return $productsXml->Product;
     }
 
     public function __destruct()
@@ -244,3 +226,4 @@ class UnasApiService
         }
     }
 }
+

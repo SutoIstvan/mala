@@ -31,8 +31,8 @@ class Product extends Model
     ];
 
     // Если вы хотите автоматически преобразовывать поля create_time и last_mod_time в Carbon
-    // protected $dates = [
-    //     'create_time',
-    //     'last_mod_time',
-    // ];
+    protected $dates = [
+        'create_time',
+        'last_mod_time',
+    ];
 }

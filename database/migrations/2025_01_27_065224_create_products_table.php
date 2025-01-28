@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('sku')->unique();
             $table->string('unas_id')->unique();
+            $table->string('shopify_id')->nullable();
             $table->string('state')->nullable();
             $table->string('name')->nullable();
             $table->string('price')->nullable();
