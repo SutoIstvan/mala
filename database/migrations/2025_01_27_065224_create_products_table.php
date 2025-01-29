@@ -29,6 +29,7 @@ return new class extends Migration
             $table->text('variants')->nullable();
             $table->text('statuses')->nullable();
             $table->text('history')->nullable();
+            $table->text('types')->nullable();
             $table->text('datas')->nullable();
             $table->timestamp('create_time')->nullable();
             $table->timestamp('last_mod_time')->nullable();

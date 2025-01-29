@@ -18,6 +18,11 @@ class Sync extends Command
         // Получаем список товаров из Unas
         $unasProducts = $unasService->getAllProducts();
 
+        // $this->info($unasProducts); 
+
+        $this->info(json_encode($unasProducts, JSON_PRETTY_PRINT)); 
+
+
         // Создаем массив для хранения всех unas_id из текущей синхронизации
         $currentUnasIds = [];
 
@@ -66,6 +71,7 @@ class Sync extends Command
             'statuses' => json_encode($unasProduct['statuses']),
             'history' => json_encode($unasProduct['history'] ?? []), // Empty array by default
             // 'history' => json_encode($unasProduct['history']),
+            'types' => json_encode($unasProduct['types'] ?? []), // Empty array by default
             'datas' => json_encode($unasProduct['datas'] ?? []), // Empty array by default
             // 'datas' => json_encode($unasProduct['datas']),
             'create_time' => $unasProduct['create_time'],

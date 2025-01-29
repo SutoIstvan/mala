@@ -25,6 +25,7 @@ class Product extends Model
         'variants',
         'statuses',
         'history',
+        'types',
         'datas',
         'create_time',
         'last_mod_time',

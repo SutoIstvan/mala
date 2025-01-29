@@ -47,7 +47,7 @@ class UnasApiService
         return $this->token;
     }
 
-    public function getAllProducts($categoryId = '901601', $limit = 7)
+    public function getAllProducts($categoryId = '901601', $limit = 10)
     {
         if (!$this->token) {
             $this->login();
@@ -77,6 +77,14 @@ class UnasApiService
         curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
 
         $response = curl_exec($this->curl);
+
+
+        // Вывод полученных сырых данны 
+        // $products = $response;
+        // return $products;
+
+
+
         if ($response === false) {
             throw new \Exception('Curl error: ' . curl_error($this->curl));
         }
@@ -127,6 +135,69 @@ class UnasApiService
                 }
                 $productData['params'] = $params;
             }
+
+            // if (isset($product->Types)) {
+            //     $types = [];
+            //     $types[] = [
+            //         'type' => (string)$product->Types->Type ?? null, // Значение тега <Type>
+            //         'parent' => isset($product->Types->Parent) ? (string)$product->Types->Parent : null, // Значение <Parent>
+            //         'display' => isset($product->Types->Display) ? (int)$product->Types->Display : null, // Значение <Display>
+            //         'order' => isset($product->Types->Order) ? (int)$product->Types->Order : null, // Значение <Order>
+            //     ];
+            //     $productData['types'] = $types;
+            // }
+            
+            if (isset($product->Types)) {
+                $types = [];
+            
+                // Преобразуем в массив, если `<Types>` встречается несколько раз
+                $typesList = is_array($product->Types) ? $product->Types : [$product->Types];
+            
+                foreach ($typesList as $typeNode) {
+                    // Получаем значение <Type>
+                    $type = isset($typeNode->Type) ? (string)$typeNode->Type : null;
+            
+                    // Определяем, это parent или child
+                    if ($type === 'child') {
+                        $types[] = [
+                            'type' => $type,
+                            'parent' => isset($typeNode->Parent) ? (string)$typeNode->Parent : null,
+                            'display' => isset($typeNode->Display) ? (int)$typeNode->Display : null,
+                            'order' => isset($typeNode->Order) ? (int)$typeNode->Order : null,
+                        ];
+                    } elseif ($type === 'parent') {
+                        // $children = [];
+                        // if (isset($typeNode->Children->Child)) {
+                        //     // Преобразуем в массив, если `<Child>` встречается несколько раз
+                        //     $childrenList = is_array($typeNode->Children->Child) ? $typeNode->Children->Child : [$typeNode->Children->Child];
+            
+                        //     foreach ($childrenList as $child) {
+                        //         $children[] = (string)$child;
+                        //     }
+                        // }
+
+                        $children = [];
+                        if (isset($typeNode->Children->Child)) {
+                            foreach ($typeNode->Children->Child as $child) {
+                                $children[] = (string)$child;
+                            }
+                        }
+                        
+
+            
+                        $types[] = [
+                            'type' => $type,
+                            'children' => $children,
+                            'order' => isset($typeNode->Order) ? (int)$typeNode->Order : null,
+                        ];
+                    }
+                }
+            
+                $productData['types'] = $types;
+            }
+            
+            
+            
 
             if (isset($product->Variants->Variant)) {
                 $variants = [];
