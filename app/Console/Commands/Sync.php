@@ -33,11 +33,21 @@ class Sync extends Command
             $existingProduct = Product::where('unas_id', $unasProduct['unas_id'])->first();
 
             if (!$existingProduct) {
-                // Создаем новый товар, если его нет в базе
-                $newProduct = $this->createNewProduct($unasProduct, $shopifyService);
+                // Проверяем, является ли товар родительским
+                if ($this->isParentProduct($unasProduct)) {
+                    // Создаем новый товар, если его нет в базе и он родительский
+                    $newProduct = $this->createNewProduct($unasProduct, $shopifyService);
+                } else {
+                    // Если товар дочерний, пропускаем создание, но обновляем варианты родительского товара
+                    $this->info('Skip child product: ' . $unasProduct['name']);
+                    $parentProduct = $this->findParentProduct($unasProduct);
+                    if ($parentProduct) {
+                        $this->updateParentProductVariants($parentProduct, $unasProduct, $shopifyService);
+                    }
+                }
             } else {
                 $this->info('Skip product: ' . $unasProduct['name']);
-
+            
                 // Проверяем, были ли изменения
                 if ($this->hasProductChanged($existingProduct, $unasProduct)) {
                     $this->updateProduct($existingProduct, $unasProduct, $shopifyService);
@@ -49,6 +59,48 @@ class Sync extends Command
         // Используем массив текущих unas_id для проверки
         $this->removeDeletedProducts($currentUnasIds, $shopifyService);
     }
+
+    private function isParentProduct($unasProduct)
+{
+    // Если в данных товара нет типа "child", считаем его родительским
+    return !isset($unasProduct['types']) || 
+           !collect($unasProduct['types'])->contains('type', 'child');
+}
+
+private function findParentProduct($unasProduct)
+{
+    // Ищем родительский товар по его ID или SKU
+    $parentId = $unasProduct['types'][0]['parent'] ?? null;
+    if ($parentId) {
+        return Product::where('sku', $parentId)->orWhere('unas_id', $parentId)->first();
+    }
+    return null;
+}
+
+private function updateParentProductVariants($parentProduct, $unasProduct, $shopifyService)
+{
+    // Получаем текущие варианты родительского товара
+    $variants = json_decode($parentProduct->variants, true) ?? [];
+
+    // Добавляем новый вариант (дочерний товар)
+    $newVariant = [
+        'sku' => $unasProduct['sku'], // Например, 'OLIVER-WHITE-001-M'
+        'name' => $unasProduct['name'], // Например, 'Size M'
+        'price' => $unasProduct['price'], // Например, 21.99
+        'inventory_management' => 'shopify',
+        'inventory_quantity' => $unasProduct['quantity'] ?? 0
+    ];
+
+    // Добавляем новый вариант в массив
+    $variants[] = $newVariant;
+
+    // Обновляем варианты в Shopify
+    $shopifyService->updateProductVariants($parentProduct->shopify_id, $variants);
+
+    // Обновляем варианты в локальной базе данных
+    $parentProduct->variants = json_encode($variants);
+    $parentProduct->save();
+}
 
     private function createNewProduct($unasProduct, $shopifyService)
     {
