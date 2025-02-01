@@ -6,7 +6,7 @@
 
     <section class="wrapper overflow-hidden">
         <div class="container pt-18 pt-md-20 text-center position-relative">
-            <div class="position-absolute" style="top: -15%; left: 50%; transform: translateX(-50%);" data-cue="fadeIn"><img
+            <div class="position-absolute" style="top: -15%; left: 50%; transform: translateX(-50%); z-index:-1;" data-cue="fadeIn"><img
                     src="./assets/img/photos/blurry.png" alt=""></div>
             <div class="row position-relative">
                 <div class="col-lg-8 col-xxl-7 mx-auto position-relative">
@@ -29,7 +29,7 @@
         </div>
 
 
-        <section class="wrapper bg-soft-primary overflow-hidden" id="demos">
+        <section class="wrapper overflow-hidden" id="demos">
 
             <!-- /.container -->
             <div class="container pt-10 pb-20">

@@ -24,6 +24,10 @@ Route::get('/kapcsolat', function () {
     return view('contact');
 })->name('contact');
 
+Route::get('/gdpr', function () {
+    return view('gdpr');
+})->name('gdpr');
+
 Route::post('/kapcsolat-kuldes', [ContactController::class, 'submitForm'])->name('contact.submit');
 
 Route::get('/dashboard', function () {

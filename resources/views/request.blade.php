@@ -6,7 +6,7 @@
 
     <section class="wrapper overflow-hidden">
         <div class="container pt-18 pt-md-20 text-center position-relative">
-            <div class="position-absolute" style="top: -15%; left: 50%; transform: translateX(-50%);" data-cue="fadeIn"><img
+            <div class="position-absolute" style="top: -15%; left: 50%; transform: translateX(-50%); z-index: -1;" data-cue="fadeIn"><img
                     src="./assets/img/photos/blurry.png" alt=""></div>
             <div class="row position-relative">
                 <div class="col-lg-8 col-xxl-7 mx-auto position-relative">
@@ -78,6 +78,15 @@
                                         <div class="invalid-feedback"> Kérjük, írja be üzenetét. </div>
                                     </div>
                                 </div>
+
+                                <div class="col-12">
+                                    <div class="form-check mb-4">
+                                      <input class="form-check-input" type="checkbox" value="" id="invalidCheck" required="">
+                                      <label class="form-check-label" for="invalidCheck"> Elfogadom az <a href="{{ route('gdpr') }}" class="hover">adatkezelési feltételeket</a>. </label>
+                                      <div class="invalid-feedback"> El kell fogadnia az adatkezelési feltételeket a beküldés előtt. </div>
+                                    </div>
+                                  </div>
+
                                 <div class="col-12 text-center">
                                     <input type="submit" class="btn btn-primary rounded-pill btn-send mb-3" value="Üzenet küldése">
                                     <p class="text-muted"><strong>*</strong> Ezek a mezők kötelezőek.</p>
