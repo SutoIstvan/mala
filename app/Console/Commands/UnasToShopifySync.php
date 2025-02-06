@@ -23,7 +23,7 @@ class UnasToShopifySync extends Command
             // 1. Получение товаров из UNAS
             $unasProducts = $unasService->getAllProducts();
 
-            // $this->info(json_encode($unasProducts, JSON_PRETTY_PRINT)); 
+            $this->info(json_encode($unasProducts, JSON_PRETTY_PRINT)); 
 
             foreach ($unasProducts as $product) {
 
@@ -46,7 +46,7 @@ class UnasToShopifySync extends Command
             $this->syncToShopify();
 
             // Затем создаем в Shopify
-            $shopifyService->createProduct($product);
+            // $shopifyService->createProduct($product);
         } catch (\Exception $e) {
             $this->error("Error during sync: " . $e->getMessage());
         }
@@ -115,6 +115,10 @@ class UnasToShopifySync extends Command
                 'category' => $product['category'],
                 'description' => $product['description'],
                 'images' => json_encode($product['images']),
+                // 'images' => isset($product['images']) && is_array($product['images']) 
+                //     ? json_encode($product['images']) 
+                //     : json_encode([]),
+                    
                 'params' => json_encode($product['params']),
                 'statuses' => json_encode($product['statuses']),
                 'history' => json_encode([]),
@@ -244,11 +248,28 @@ class UnasToShopifySync extends Command
 
         // Создаем дочерний товар
         $childProduct = ChildProduct::create([
+            'parent_product_id' => $parentProduct->id,
             'sku' => $product['sku'],
             'unas_id' => $product['unas_id'],
-            'parent_product_id' => $parentProduct->id,
             'state' => $product['state'],
             'name' => $product['name'],
+            'price' => $product['price'],
+            'unit' => $product['unit'],
+            'url' => $product['url'],
+            'qty' => $product['qty'],
+            'category' => $product['category'],
+            'description' => $product['description'],
+            'images' => json_encode($product['images']),
+            'params' => json_encode($product['params']),
+            'statuses' => json_encode($product['statuses']),
+            'types' => json_encode($product['types']),
+
+            'history' => $product['params'][0]['name'],
+            'datas' => $product['params'][0]['value'],
+            // 'history' => json_encode([]),
+            // 'datas' => json_encode([]),
+            'create_time' => $product['create_time'],
+            'last_mod_time' => $product['last_mod_time'],
         ]);
 
         if ($childProduct) {
@@ -306,15 +327,15 @@ class UnasToShopifySync extends Command
                         'inventory_quantity' => $childProduct->qty,
                         'inventory_management' => 'shopify',
                         'title' => $childProduct->name,
-                        'option1' => $childProduct->name, // Или другое значение, которое определяет вариант
+                        'option1' => $childProduct->datas, // Или другое значение, которое определяет вариант
                     ];
                 }
     
                 // Добавляем опции для вариантов
                 $shopifyProduct['product']['options'] = [
                     [
-                        'name' => 'Type',
-                        'values' => $childProducts->pluck('name')->toArray()
+                        'name' => $childProduct->history,
+                        'values' => $childProduct->datas,
                     ]
                 ];
     

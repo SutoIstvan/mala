@@ -47,7 +47,7 @@ class UnasApiService
         return $this->token;
     }
 
-    public function getAllProducts($categoryId = '901601', $limit = 10)
+    public function getAllProducts($categoryId = '901601', $limit = 50)
     {
         if (!$this->token) {
             $this->login();
@@ -62,7 +62,7 @@ class UnasApiService
         <?xml version="1.0" encoding="UTF-8"?>
         <Params>
             <StatusBase>1</StatusBase>
-            <CategoryId>{$categoryId}</CategoryId>
+            <CategoryId>569775</CategoryId>
             <ContentType>full</ContentType>
             <LimitNum>{$limit}</LimitNum>
         </Params>
@@ -112,16 +112,19 @@ class UnasApiService
                 'qty' => (string)$product->Stocks->Stock->Qty,
             ];
 
-            if (isset($product->Images->Image)) {
+            if (isset($product->Images->Image) && is_iterable($product->Images->Image)) {
                 $images = [];
                 foreach ($product->Images->Image as $image) {
                     $images[] = [
-                        'url' => (string)$image->Url->Medium,
-                        'alt' => (string)$image->Alt,
+                        'url' => isset($image->Url->Medium) ? (string)$image->Url->Medium : '',
+                        'alt' => isset($image->Alt) ? (string)$image->Alt : '',
                     ];
                 }
                 $productData['images'] = $images;
+            } else {
+                $productData['images'] = [];
             }
+            
 
             if (isset($product->Params->Param)) {
                 $params = [];
