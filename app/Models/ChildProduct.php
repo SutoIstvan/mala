@@ -3,14 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Product extends Model
+class ChildProduct extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'sku',
+        'parent_product_id',
         'unas_id',
         'state',
         'name',
@@ -32,13 +30,20 @@ class Product extends Model
     ];
 
     // Если вы хотите автоматически преобразовывать поля create_time и last_mod_time в Carbon
-    protected $dates = [
-        'create_time',
-        'last_mod_time',
-    ];
+    // protected $dates = [
+    //     'create_time',
+    //     'last_mod_time',
+    // ];
 
-    public function childProducts()
+    // protected $casts = [
+    //     'params' => 'array',
+    //     'variants' => 'array',
+    //     'images' => 'array'
+    // ];
+
+    public function parentProduct()
     {
-        return $this->hasMany(ChildProduct::class, 'parent_product_id');
+        return $this->belongsTo(Product::class, 'parent_product_id');
     }
+    
 }

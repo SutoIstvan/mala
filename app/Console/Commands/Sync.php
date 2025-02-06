@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\ChildProduct;
 use Illuminate\Console\Command;
 use App\Services\UnasApiService;
 use App\Services\ShopifyApiService;
@@ -27,31 +28,26 @@ class Sync extends Command
         $currentUnasIds = [];
 
         foreach ($unasProducts as $unasProduct) {
-            // Добавляем unas_id в массив текущих товаров
-            $currentUnasIds[] = $unasProduct['unas_id'];
-
-            $existingProduct = Product::where('unas_id', $unasProduct['unas_id'])->first();
-
-            if (!$existingProduct) {
-                // Проверяем, является ли товар родительским
-                if ($this->isParentProduct($unasProduct)) {
-                    // Создаем новый товар, если его нет в базе и он родительский
-                    $newProduct = $this->createNewProduct($unasProduct, $shopifyService);
-                } else {
-                    // Если товар дочерний, пропускаем создание, но обновляем варианты родительского товара
-                    $this->info('Skip child product: ' . $unasProduct['name']);
-                    $parentProduct = $this->findParentProduct($unasProduct);
-                    if ($parentProduct) {
-                        $this->updateParentProductVariants($parentProduct, $unasProduct, $shopifyService);
-                    }
+            try {
+                $currentUnasIds[] = $unasProduct['unas_id'];
+    
+                // Добавим отладочную информацию о типе товара
+                $this->info('Processing product: ' . $unasProduct['name']);
+                $this->info('Product type data: ' . json_encode($unasProduct['types'] ?? []));
+    
+                if (!$this->isParentProduct($unasProduct)) {
+                    $this->info('This is a child product');
+                    $this->handleChildProduct($unasProduct, $shopifyService);
+                    continue;
                 }
-            } else {
-                $this->info('Skip product: ' . $unasProduct['name']);
-            
-                // Проверяем, были ли изменения
-                if ($this->hasProductChanged($existingProduct, $unasProduct)) {
-                    $this->updateProduct($existingProduct, $unasProduct, $shopifyService);
-                }
+    
+                $this->info('This is a parent product');
+                // ... остальной код для родительских товаров ...
+            } catch (\Exception $e) {
+                $this->error('Error processing product: ' . $unasProduct['name']);
+                $this->error($e->getMessage());
+                // Можно добавить continue здесь, если хотим продолжить обработку остальных товаров
+                throw $e;
             }
         }
 
@@ -67,39 +63,34 @@ class Sync extends Command
            !collect($unasProduct['types'])->contains('type', 'child');
 }
 
-private function findParentProduct($unasProduct)
-{
-    // Ищем родительский товар по его ID или SKU
-    $parentId = $unasProduct['types'][0]['parent'] ?? null;
-    if ($parentId) {
-        return Product::where('sku', $parentId)->orWhere('unas_id', $parentId)->first();
-    }
-    return null;
-}
 
 private function updateParentProductVariants($parentProduct, $unasProduct, $shopifyService)
 {
+
+    $this->error("❌ updateParentProductVariants" );
+
+    
     // Получаем текущие варианты родительского товара
-    $variants = json_decode($parentProduct->variants, true) ?? [];
+    // $variants = json_decode($parentProduct->variants, true) ?? [];
 
-    // Добавляем новый вариант (дочерний товар)
-    $newVariant = [
-        'sku' => $unasProduct['sku'], // Например, 'OLIVER-WHITE-001-M'
-        'name' => $unasProduct['name'], // Например, 'Size M'
-        'price' => $unasProduct['price'], // Например, 21.99
-        'inventory_management' => 'shopify',
-        'inventory_quantity' => $unasProduct['quantity'] ?? 0
-    ];
+    // // Добавляем новый вариант (дочерний товар)
+    // $newVariant = [
+    //     'sku' => $unasProduct['sku'], // Например, 'OLIVER-WHITE-001-M'
+    //     'name' => $unasProduct['name'], // Например, 'Size M'
+    //     'price' => $unasProduct['price'], // Например, 21.99
+    //     'inventory_management' => 'shopify',
+    //     'inventory_quantity' => $unasProduct['quantity'] ?? 0
+    // ];
 
-    // Добавляем новый вариант в массив
-    $variants[] = $newVariant;
+    // // Добавляем новый вариант в массив
+    // $variants[] = $newVariant;
 
-    // Обновляем варианты в Shopify
-    $shopifyService->updateProductVariants($parentProduct->shopify_id, $variants);
+    // // Обновляем варианты в Shopify
+    // $shopifyService->updateProductVariants($parentProduct->shopify_id, $variants);
 
-    // Обновляем варианты в локальной базе данных
-    $parentProduct->variants = json_encode($variants);
-    $parentProduct->save();
+    // // Обновляем варианты в локальной базе данных
+    // $parentProduct->variants = json_encode($variants);
+    // $parentProduct->save();
 }
 
     private function createNewProduct($unasProduct, $shopifyService)
@@ -199,4 +190,70 @@ private function updateParentProductVariants($parentProduct, $unasProduct, $shop
             throw $e;
         }
     }
+
+
+
+
+    private function handleChildProduct($unasProduct, $shopifyService)
+    {
+        $parentProduct = $this->findParentProduct($unasProduct);
+        
+        if (!$parentProduct) {
+            $this->error("Parent product not found for child: " . $unasProduct['name']);
+            return;
+        }
+
+        try {
+            $parentProductId = $this->findParentProduct($unasProduct);
+
+            if (!$parentProductId) {
+                $this->error("Parent product not found for child: " . $unasProduct['name']);
+                return;
+            }
+            
+            $childData = [
+                'parent_product_id' => $parentProductId, // Просто ID без ->id
+                'unas_id' => (string)$unasProduct['unas_id'],
+                'sku' => $unasProduct['sku'],
+                'name' => $unasProduct['name'],
+                'price' => (float)$unasProduct['price'],
+                'qty' => (int)($unasProduct['qty'] ?? 0),
+                // 'params' => $unasProduct['params'] ?? [],
+                // 'variants' => $unasProduct['variants'] ?? [],
+                // 'images' => $unasProduct['images'] ?? []
+            ];
+
+            $existingChild = ChildProduct::where('unas_id', $unasProduct['unas_id'])->first();
+
+            if ($existingChild) {
+                $existingChild->fill($childData)->save();
+            } else {
+                ChildProduct::create($childData);
+            }
+
+            $this->updateParentProductVariants($parentProduct, $unasProduct, $shopifyService);
+
+        } catch (\Exception $e) {
+            $this->error('Error details: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    private function findParentProduct($unasProduct)
+    {
+        if (empty($unasProduct['types'][0]['parent'])) {
+            return null;
+        }
+    
+        $parentId = $unasProduct['types'][0]['parent'];
+    
+        $this->info("Looking for parent product with identifier: " . $parentId);
+    
+        return Product::where('sku', $parentId)
+                     ->orWhere('unas_id', $parentId)
+                     ->value('id'); // Здесь мы берём только id
+    }
+    
+    
+
 }
