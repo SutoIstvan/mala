@@ -56,7 +56,13 @@
         </div>
 
         <!-- /.container -->
-        <div class="container pt-20">
+        <div class="container pt-10">
+            <div class="row mb-10">
+                <div class="col-md-11 col-lg-8 col-xl-7 col-xxl-6 mx-auto text-center">
+                    <img src="{{ asset('assets/img/dell.jpg') }}" height="70px" alt="Dell technologies authorized partner">
+                </div>
+                <!-- /column -->
+            </div>
             <div class="row">
                 <div class="col-md-11 col-lg-8 col-xl-7 col-xxl-6 mx-auto text-center">
                     <h2 class="display-2 mb-4">Szolgáltatásaink</h2>
