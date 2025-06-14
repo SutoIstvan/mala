@@ -8,11 +8,14 @@ class UnasApiService
     private $token;
     private $curl;
 
-    public function __construct()
+    
+
+    public function __construct($apiKey)
     {
-        $this->apiKey = env('UNAS_API_KEY');
+        $this->apiKey = trim($apiKey);
         $this->initCurl();
     }
+
 
     private function initCurl()
     {
@@ -24,280 +27,128 @@ class UnasApiService
 
     public function login()
     {
+        // Диагностика: выводим ключ
+        file_put_contents(storage_path('unas_api_debug.txt'), "APIKEY: [{$this->apiKey}]\n", FILE_APPEND);
+
         $loginRequest = sprintf(
-            '<?xml version="1.0" encoding="UTF-8"?><Params><ApiKey>%s</ApiKey><WebshopInfo>true</WebshopInfo></Params>',
-            $this->apiKey
+            '<?xml version="1.0" encoding="UTF-8"?><Params><ApiKey>%s</ApiKey></Params>',
+            trim($this->apiKey)
         );
+        file_put_contents(storage_path('unas_api_debug.txt'), "LOGIN XML: $loginRequest\n", FILE_APPEND);
 
         curl_setopt($this->curl, CURLOPT_URL, "https://api.unas.eu/shop/login");
         curl_setopt($this->curl, CURLOPT_POSTFIELDS, $loginRequest);
-
         $response = curl_exec($this->curl);
+
+        // Логируем raw response
+        file_put_contents(storage_path('unas_api_debug.txt'), "RESPONSE: $response\n", FILE_APPEND);
+
         if ($response === false) {
-            throw new \Exception('Curl error: ' . curl_error($this->curl));
+            $err = curl_error($this->curl);
+            file_put_contents(storage_path('unas_api_debug.txt'), "CURL ERROR: $err\n", FILE_APPEND);
+            throw new \Exception('Curl error: ' . $err);
         }
 
         $loginXml = simplexml_load_string($response);
-        $this->token = (string)$loginXml->Token;
+        // Диагностика: что распарсилось?
+        file_put_contents(storage_path('unas_api_debug.txt'), "LOGIN XML OBJECT: " . print_r($loginXml, true) . "\n", FILE_APPEND);
 
+        $this->token = isset($loginXml->Token) ? (string)$loginXml->Token : null;
         if (!$this->token) {
-            throw new \Exception('Failed to get token: ' . $response);
+            throw new \Exception('Не удалось получить токен UNAS: ' . $response);
         }
-
         return $this->token;
     }
 
-    public function getAllProducts($categoryId = '901601', $limit = 50)
+    public function getOrders($paramsXml)
     {
-        if (!$this->token) {
-            $this->login();
-        }
-
-        $headers = [
+        if (!$this->token) $this->login();
+        curl_setopt($this->curl, CURLOPT_HTTPHEADER, [
             "Authorization: Bearer " . $this->token,
             "Content-Type: application/xml"
-        ];
-
-        $productRequest = <<<XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Params>
-            <StatusBase>1</StatusBase>
-            <CategoryId>569775</CategoryId>
-            <ContentType>full</ContentType>
-            <LimitNum>{$limit}</LimitNum>
-        </Params>
-        XML;
-
-        curl_setopt($this->curl, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($this->curl, CURLOPT_URL, "https://api.unas.eu/shop/getProduct");
-        curl_setopt($this->curl, CURLOPT_POSTFIELDS, $productRequest);
-
-
-
-        curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
-
+        ]);
+        curl_setopt($this->curl, CURLOPT_URL, "https://api.unas.eu/shop/getOrder");
+        curl_setopt($this->curl, CURLOPT_POSTFIELDS, $paramsXml);
         $response = curl_exec($this->curl);
-
-
-        // Вывод полученных сырых данны 
-        // $products = $response;
-        // return $products;
-
-
+        file_put_contents(storage_path('unas_api_debug.txt'), "getOrders RESPONSE: $response\n", FILE_APPEND);
 
         if ($response === false) {
-            throw new \Exception('Curl error: ' . curl_error($this->curl));
+            $err = curl_error($this->curl);
+            file_put_contents(storage_path('unas_api_debug.txt'), "getOrders CURL ERROR: $err\n", FILE_APPEND);
+            throw new \Exception('Curl error: ' . $err);
         }
 
-        $productsXml = simplexml_load_string($response);
-        if (!$productsXml) {
-            throw new \Exception('XML parsing error: ' . $response);
-        }
-
-        // XML convert
-        $products = [];
-        foreach ($productsXml->Product as $product) {
-            $productData = [
-                'sku' => (string)$product->Sku,
-                'unas_id' => (string)$product->Id,
-                'state' => (string)$product->State,
-                'name' => (string)$product->Name,
-                'price' => (string)$product->Prices->Price->Gross,
-                'unit' => (string)$product->Unit,
-                'create_time' => (string)$product->CreateTime,
-                'last_mod_time' => (string)$product->LastModTime,
-                'category' => (string)$product->Categories->Category->Name,
-                'description' => (string)$product->Description->Long,
-                'url' => (string)$product->Url,
-                'qty' => (string)$product->Stocks->Stock->Qty,
-            ];
-
-            if (isset($product->Images->Image) && is_iterable($product->Images->Image)) {
-                $images = [];
-                foreach ($product->Images->Image as $image) {
-                    $images[] = [
-                        'url' => isset($image->Url->Medium) ? (string)$image->Url->Medium : '',
-                        'alt' => isset($image->Alt) ? (string)$image->Alt : '',
-                    ];
-                }
-                $productData['images'] = $images;
-            } else {
-                $productData['images'] = [];
-            }
-            
-
-            if (isset($product->Params->Param)) {
-                $params = [];
-                foreach ($product->Params->Param as $category) {
-                    $params[] = [
-                        'type' => (string)$category->Type,
-                        'id' => (string)$category->Id,
-                        'name' => (string)$category->Name,
-                        'value' => (string)$category->Value
-                    ];
-                }
-                $productData['params'] = $params;
-            }
-
-            // if (isset($product->Types)) {
-            //     $types = [];
-            //     $types[] = [
-            //         'type' => (string)$product->Types->Type ?? null, // Значение тега <Type>
-            //         'parent' => isset($product->Types->Parent) ? (string)$product->Types->Parent : null, // Значение <Parent>
-            //         'display' => isset($product->Types->Display) ? (int)$product->Types->Display : null, // Значение <Display>
-            //         'order' => isset($product->Types->Order) ? (int)$product->Types->Order : null, // Значение <Order>
-            //     ];
-            //     $productData['types'] = $types;
-            // }
-            
-            if (isset($product->Types)) {
-                $types = [];
-            
-                // Преобразуем в массив, если `<Types>` встречается несколько раз
-                $typesList = is_array($product->Types) ? $product->Types : [$product->Types];
-            
-                foreach ($typesList as $typeNode) {
-                    // Получаем значение <Type>
-                    $type = isset($typeNode->Type) ? (string)$typeNode->Type : null;
-            
-                    // Определяем, это parent или child
-                    if ($type === 'child') {
-                        $types[] = [
-                            'type' => $type,
-                            'parent' => isset($typeNode->Parent) ? (string)$typeNode->Parent : null,
-                            'display' => isset($typeNode->Display) ? (int)$typeNode->Display : null,
-                            'order' => isset($typeNode->Order) ? (int)$typeNode->Order : null,
-                        ];
-                    } elseif ($type === 'parent') {
-                        // $children = [];
-                        // if (isset($typeNode->Children->Child)) {
-                        //     // Преобразуем в массив, если `<Child>` встречается несколько раз
-                        //     $childrenList = is_array($typeNode->Children->Child) ? $typeNode->Children->Child : [$typeNode->Children->Child];
-            
-                        //     foreach ($childrenList as $child) {
-                        //         $children[] = (string)$child;
-                        //     }
-                        // }
-
-                        $children = [];
-                        if (isset($typeNode->Children->Child)) {
-                            foreach ($typeNode->Children->Child as $child) {
-                                $children[] = (string)$child;
-                            }
-                        }
-                        
-
-            
-                        $types[] = [
-                            'type' => $type,
-                            'children' => $children,
-                            'order' => isset($typeNode->Order) ? (int)$typeNode->Order : null,
-                        ];
-                    }
-                }
-            
-                $productData['types'] = $types;
-            }
-            
-            
-            
-
-            if (isset($product->Variants->Variant)) {
-                $variants = [];
-                foreach ($product->Variants->Variant as $variant) {
-                    $variantData = [
-                        'name' => (string)$variant->Name,
-                        'values' => [],
-                    ];
-
-                    if (isset($variant->Values->Value)) {
-                        foreach ($variant->Values->Value as $value) {
-                            $valueData = [
-                                'name' => (string)$value->Name,
-                            ];
-
-                            if (isset($value->ExtraPrice)) {
-                                $valueData['extra_price'] = (string)$value->ExtraPrice;
-                            }
-
-                            $variantData['values'][] = $valueData;
-                        }
-                    }
-
-                    $variants[] = $variantData;
-                }
-
-                $productData['variants'] = $variants;
-            }
-
-            if (isset($product->Statuses->Status)) {
-                $statuses = [];
-                foreach ($product->Statuses->Status as $status) {
-                    $statusData = [
-                        'type' => (string)$status->Type,
-                        'value' => (string)$status->Value,
-                    ];
-
-                    if (isset($status->Id)) {
-                        $statusData['id'] = (string)$status->Id;
-                    }
-                    if (isset($status->Name)) {
-                        $statusData['name'] = (string)$status->Name;
-                    }
-
-                    $statuses[] = $statusData;
-                }
-
-                $productData['statuses'] = $statuses;
-            }
-
-            if (isset($product->History->Event)) {
-                $history = [];
-                foreach ($product->History->Event as $event) {
-                    $eventData = [
-                        'action' => (string)$event->Action, // Действие (например, "add" или "modify")
-                        'time' => (string)$event->Time, // Время события
-                        'sku' => (string)$event->Sku, // Текущий SKU
-                    ];
-
-                    // Если есть старый SKU, добавляем его
-                    if (isset($event->SkuOld)) {
-                        $eventData['sku_old'] = (string)$event->SkuOld;
-                    }
-
-                    $history[] = $eventData;
-                }
-
-                $productData['history'] = $history;
-            }
-
-            if (isset($product->Datas->Data)) {
-                $datas = [];
-                foreach ($product->Datas->Data as $data) {
-                    $dataItem = [
-                        'id' => (string)$data->Id, // ID данных
-                        'name' => (string)$data->Name, // Название данных
-                        'value' => (string)$data->Value, // Значение данных
-                    ];
-            
-                    $datas[] = $dataItem;
-                }
-            
-                $productData['datas'] = $datas;
-            }
-
-
-            $products[] = $productData;
-        }
-
-        return $products;
+        return simplexml_load_string($response);
     }
 
-    public function __destruct()
+    public function setOrders($ordersXml)
     {
-        if ($this->curl) {
-            curl_close($this->curl);
+        if (!$this->token) $this->login();
+        curl_setopt($this->curl, CURLOPT_HTTPHEADER, [
+            "Authorization: Bearer " . $this->token,
+            "Content-Type: application/xml"
+        ]);
+        curl_setopt($this->curl, CURLOPT_URL, "https://api.unas.eu/shop/setOrder");
+        curl_setopt($this->curl, CURLOPT_POSTFIELDS, $ordersXml);
+        $response = curl_exec($this->curl);
+        file_put_contents(storage_path('unas_api_debug.txt'), "setOrders REQUEST: $ordersXml\n", FILE_APPEND);
+        file_put_contents(storage_path('unas_api_debug.txt'), "setOrders RESPONSE: $response\n", FILE_APPEND);
+
+        if ($response === false) {
+            $err = curl_error($this->curl);
+            file_put_contents(storage_path('unas_api_debug.txt'), "setOrders CURL ERROR: $err\n", FILE_APPEND);
+            throw new \Exception('Curl error: ' . $err);
         }
+
+        return $response; // Строка XML-ответа
+    }
+
+    public function getOrderStatus($paramsXml)
+    {
+        if (!$this->token) $this->login();
+        curl_setopt($this->curl, CURLOPT_HTTPHEADER, [
+            "Authorization: Bearer " . $this->token,
+            "Content-Type: application/xml"
+        ]);
+        curl_setopt($this->curl, CURLOPT_URL, "https://api.unas.eu/shop/getOrderStatus");
+        curl_setopt($this->curl, CURLOPT_POSTFIELDS, $paramsXml);
+        $response = curl_exec($this->curl);
+        file_put_contents(storage_path('unas_api_debug.txt'), "getOrderStatus RESPONSE: $response\n", FILE_APPEND);
+
+        if ($response === false) {
+            $err = curl_error($this->curl);
+            file_put_contents(storage_path('unas_api_debug.txt'), "getOrderStatus CURL ERROR: $err\n", FILE_APPEND);
+            throw new \Exception('Curl error: ' . $err);
+        }
+
+        
+        // // Выводим сырой ответ в консоль
+        // echo "\n------ RAW getOrderStatus RESPONSE ------\n";
+        // echo $response . "\n";
+        // echo "------ END RAW RESPONSE ------\n";
+        
+        return simplexml_load_string($response);
+    }
+
+    public function setOrderStatus($statusXml)
+    {
+        if (!$this->token) $this->login();
+        curl_setopt($this->curl, CURLOPT_HTTPHEADER, [
+            "Authorization: Bearer " . $this->token,
+            "Content-Type: application/xml"
+        ]);
+        curl_setopt($this->curl, CURLOPT_URL, "https://api.unas.eu/shop/setOrderStatus");
+        curl_setopt($this->curl, CURLOPT_POSTFIELDS, $statusXml);
+        $response = curl_exec($this->curl);
+        file_put_contents(storage_path('unas_api_debug.txt'), "setOrderStatus REQUEST: $statusXml\n", FILE_APPEND);
+        file_put_contents(storage_path('unas_api_debug.txt'), "setOrderStatus RESPONSE: $response\n", FILE_APPEND);
+
+        if ($response === false) {
+            $err = curl_error($this->curl);
+            file_put_contents(storage_path('unas_api_debug.txt'), "setOrderStatus CURL ERROR: $err\n", FILE_APPEND);
+            throw new \Exception('Curl error: ' . $err);
+        }
+
+        return $response;
     }
 }
-
